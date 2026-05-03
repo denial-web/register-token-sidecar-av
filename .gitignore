@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data and artifacts
+data/
+artifacts/
+
+# OS files
+.DS_Store
+
+# LaTeX build outputs
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc

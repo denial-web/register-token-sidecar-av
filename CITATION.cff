@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+title: Register-Token Sidecar for Data-Efficient Perception Pipelines
+message: If you use or reference this repository, please cite it using this metadata.
+type: software
+authors:
+  - given-names: Denialkhmbot
+repository-code: https://github.com/denial-web/register-token-sidecar-av
+url: https://github.com/denial-web/register-token-sidecar-av
+license: MIT
+version: 0.1.0
+date-released: 2026-05-03
+abstract: >
+  Independent research proposal for a non-invasive register-token sidecar
+  intended to improve data triage, long-tail event mining, and upload
+  efficiency in large-scale perception pipelines.
+keywords:
+  - autonomous-driving
+  - robotics
+  - data-efficiency
+  - active-learning
+  - computer-vision
+  - perception
