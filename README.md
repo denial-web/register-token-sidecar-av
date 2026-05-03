@@ -118,14 +118,14 @@ Stop the approach if:
 This repository currently includes:
 
 - `README.md` for the proposal and validation plan
+- `whitepaper.tex` for the publication-style source document
+- `whitepaper.pdf` for the compiled whitepaper
 - `experiments/` for future offline validation code and notes
 - `results/` for benchmark tables, plots, and analysis
 - `CITATION.cff` and `LICENSE` for reuse and attribution
 
 Planned additions:
 
-- `whitepaper.tex`
-- `whitepaper.pdf`
 - small baseline scripts or notebooks for offline evaluation
 
 ## Related Work

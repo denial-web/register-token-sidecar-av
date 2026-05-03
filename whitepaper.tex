@@ -1,0 +1,210 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{setspace}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  citecolor=blue!50!black,
+  urlcolor=blue!60!black,
+  pdftitle={Register-Token Sidecar for Efficient Shadow-Mode Data Pipelines in End-to-End Autonomous Driving},
+  pdfauthor={[YOUR FULL NAME HERE]}
+}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.65em}
+\setstretch{1.05}
+
+\makeatletter
+\renewcommand\@seccntformat[1]{\csname the#1\endcsname.\quad}
+\makeatother
+
+\pagestyle{plain}
+
+\lstdefinestyle{sidecarcode}{
+  language=Python,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue!60!black}\bfseries,
+  commentstyle=\color{teal!50!black}\itshape,
+  stringstyle=\color{orange!50!black},
+  showstringspaces=false,
+  frame=single,
+  rulecolor=\color{black!20},
+  backgroundcolor=\color{black!2},
+  xleftmargin=0.5em,
+  xrightmargin=0.5em,
+  aboveskip=1em,
+  belowskip=1em,
+  breaklines=true,
+  columns=fullflexible,
+  numbers=left,
+  numberstyle=\tiny\color{black!45},
+  numbersep=8pt
+}
+
+\title{\textbf{Register-Token Sidecar for Efficient Shadow-Mode Data Pipelines in End-to-End Autonomous Driving}}
+\author{[YOUR FULL NAME HERE]}
+\date{May 1, 2026}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+\begin{center}
+\small
+\textit{Theory \& Validation Blueprint}
+
+\textit{Independent research proposal. Not affiliated with Tesla, Valeo, or the authors of DrivoR.}
+\end{center}
+
+\begin{abstract}
+End-to-end autonomous driving systems rely on massive fleets for continuous improvement through shadow-mode data collection. While current trigger heuristics effectively reduce upload volume compared to raw video, two open questions remain: (1) whether an orthogonal signal can surface long-tail failures that existing triggers miss, and (2) whether uploaded payloads can be further compressed while preserving downstream training signal.
+
+We propose a lightweight register-token sidecar inspired by the DrivoR architecture \cite{kirby2026drivor}. A LoRA-tuned head with 16--32 camera-aware register tokens is run in inference-only mode alongside the main policy network. We formalize two testable hypotheses: register statistics as a hard-example mining signal (H1) and register tokens as a semantic compression codec (H2). We provide a complete 3-week offline validation plan, pseudocode, clear kill criteria, and risk assessment. No changes are made to the core pixels-to-controls policy network.
+
+This sidecar is designed to be a low-risk, high-leverage data-pipeline upgrade compatible with any large-scale end-to-end fleet.
+\end{abstract}
+
+\section{Introduction}
+
+Modern end-to-end autonomous driving programs, including fleet-scale systems such as Tesla FSD v12+ and similar stacks, have largely eliminated explicit maps and symbolic world models in favor of pure neural policies trained on vast fleet data. Shadow-mode collection --- uploading only ``interesting'' clips triggered by disengagements, planner disagreement, or heuristics --- is now standard practice to manage bandwidth and storage.
+
+However, at planetary fleet scale, even highly optimized triggers leave room for improvement in two dimensions:
+
+\begin{enumerate}
+  \item \textbf{Orthogonality of hard-example discovery} --- Some long-tail failures remain under-sampled.
+  \item \textbf{Payload efficiency} --- The current format (triggered imagery + dense features) is still expensive.
+\end{enumerate}
+
+This whitepaper proposes a minimal, non-invasive sidecar that addresses both issues using the recently published DrivoR register-token primitive.
+
+Concretely, the proposal contributes three things: a low-risk sidecar integration point, two testable hypotheses for data-pipeline improvement, and a short offline-first validation plan with explicit decision gates.
+
+\section{Background: DrivoR Register Tokens}
+
+DrivoR \cite{kirby2026drivor} introduces camera-aware register tokens into a pretrained DINOv2 ViT-S backbone. A small LoRA head (1--3 million trainable parameters) is added to produce 16--32 compact per-camera registers that replace the full set of patch tokens.
+
+Key published results:
+
+\begin{itemize}
+  \item More than 250x token compression
+  \item No loss in trajectory prediction quality on NAVSIM v1/v2 and closed-loop HUGSIM
+  \item Forward pass approximately 110 ms on a single A100 (single batch)
+\end{itemize}
+
+The registers act as a learned, compact scene descriptor while remaining fully compatible with downstream transformer decoders. We repurpose only the register mechanism as a passive sidecar for data efficiency.
+
+\section{Problem Statement}
+
+Current shadow-mode pipelines are effective but not exhaustive. We ask:
+
+\textbf{Question 1 (Orthogonality):} Do register-token statistics provide a signal that correlates with real interventions above and beyond existing triggers?
+
+\textbf{Question 2 (Compression):} Can register tokens + minimal triggered imagery serve as a drop-in replacement payload that preserves equivalent training signal?
+
+\section{Proposed Approach}
+
+We attach a frozen DINOv2 ViT-S + LoRA register head to the existing perception stack. The head runs in parallel in shadow mode only.
+
+\begin{description}
+  \item[\textbf{H1 --- Hard-Example Mining}] Compute scalar statistics on the register tokens (assignment entropy, inter-register variance, distance to learned prototypes, etc.). High-score clips are hypothesized to be enriched for interventions missed by existing triggers.
+  \item[\textbf{H2 --- Semantic Compression}] Transmit only the compact register tokens (a few KB) plus minimal triggered frames.
+\end{description}
+
+\section{Experimental Validation Plan}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{|p{0.22\textwidth}|p{0.18\textwidth}|p{0.5\textwidth}|}
+\hline
+\textbf{Phase} & \textbf{Window} & \textbf{Primary Objective} \\
+\hline
+Offline validation & Weeks 0--3 & Test orthogonality and payload efficiency using public datasets or archived fleet clips. \\
+\hline
+Shadow-mode A/B & Weeks 4--7 & Conditional deployment on a limited fleet if offline metrics justify progression. \\
+\hline
+Decision gate & End of Phase 2 & Continue only if upload reduction, latency, and orthogonality targets are all met. \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Phase 1 --- Offline Validation (Weeks 0--3)}
+
+Use public datasets (nuScenes, BDD100K) or archived fleet clips.
+
+\begin{itemize}
+  \item Run DrivoR register head on 1--10 million frames.
+  \item H1: ROC-AUC of register-derived scores vs.\ intervention labels, conditioned on existing-trigger = negative.
+  \item H2: Train lightweight downstream head on register-only vs.\ baseline payloads.
+  \item Measure forward-pass latency on HW4-class hardware.
+\end{itemize}
+
+\textbf{Phase 2 --- Shadow-Mode A/B (Weeks 4--7, conditional)}
+
+Deploy inference-only sidecar on 50--100k vehicles.
+
+\textbf{Decision Gate (Kill Criteria)}
+
+Proceed only if all hold:
+
+\begin{itemize}
+  \item At least 3x reduction in upload volume at parity intervention-discovery rate
+  \item Added latency within Autopilot budget (less than 3 ms target on HW4)
+  \item Statistically meaningful orthogonality (H1)
+\end{itemize}
+
+\section{Illustrative Pseudocode}
+
+\begin{lstlisting}[style=sidecarcode, caption={Inference-only register-token sidecar workflow.}, label={lst:sidecar}]
+vit = load_dinov2_s_backbone(frozen=True)
+register_head = LoRA_RegisterHead(num_registers=16)  # DrivoR weights
+
+for clip in dataset:
+    features = vit(clip.frames)
+    registers = register_head(features)
+
+    entropy = compute_assignment_entropy(registers)
+    variance = compute_inter_register_variance(registers)
+    proto_dist = compute_distance_to_prototypes(registers)
+
+    score = combine_scores(entropy, variance, proto_dist)
+    log(score, clip.intervention_label, clip.existing_trigger_label)
+\end{lstlisting}
+
+\section{Risks and Mitigations}
+
+\begin{itemize}
+  \item \textbf{Latency on HW4} --- measured first.
+  \item \textbf{Low orthogonality} --- primary H1 kill condition.
+  \item \textbf{Training-signal degradation (H2)} --- verified with downstream head.
+  \item \textbf{Scope creep} --- strictly a data-pipeline sidecar.
+\end{itemize}
+
+\section{Conclusion}
+
+The register-token sidecar offers a low-risk, high-leverage upgrade for any end-to-end autonomous driving fleet. Planned deliverables include open-source code and checkpoints upon completion of the offline phase.
+
+We invite feedback, collaboration, or joint validation.
+
+\begin{thebibliography}{9}
+
+\bibitem{kirby2026drivor}
+Kirby, E., et al.
+\newblock \emph{Driving on Registers}.
+\newblock arXiv:2601.05083, Valeo.ai, January 2026.
+\newblock Presented at CVPR 2026.
+\newblock Available at: \url{https://arxiv.org/abs/2601.05083}.
+
+\end{thebibliography}
+
+\end{document}
